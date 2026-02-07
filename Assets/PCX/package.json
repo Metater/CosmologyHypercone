@@ -1,0 +1,16 @@
+{
+  "author": "Keijiro Takahashi",
+  "dependencies": {},
+  "description": "Point cloud importer & renderer",
+  "displayName": "PCX",
+  "keywords": [
+    "unity"
+  ],
+  "license": "UNLICENSED",
+  "name": "jp.keijiro.pcx",
+  "repository": "github:keijiro/Pcx",
+  "unity": "2019.4",
+  "unityRelease": "0f1",
+  "version": "1.0.1",
+  "_fingerprint": "cb910a64c04722d166ed4a0a50265041e96440b3"
+}
