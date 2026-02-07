@@ -12,6 +12,7 @@ public class CreatePointData : MonoBehaviour
     public Slider pointSize, pointCount;
     public TMP_Dropdown equation, projection, coloring;
     public TMP_Text equationText;
+    public Toggle thinSlicesToggle;
 
     public int minPoints = 500;
     public int maxPoints = 10000;
@@ -46,6 +47,7 @@ public class CreatePointData : MonoBehaviour
         fourthDimMax.onValueChanged.AddListener(OnMaxSliderChanged);
         pointSize.onValueChanged.AddListener(OnSliderChanged);
         pointCount.onValueChanged.AddListener(OnSliderChanged);
+        thinSlicesToggle.onValueChanged.AddListener(OnToggleChanged);
     }
 
     private void OnDisable()
@@ -63,6 +65,7 @@ public class CreatePointData : MonoBehaviour
         fourthDimMax.onValueChanged.RemoveListener(OnMaxSliderChanged);
         pointSize.onValueChanged.RemoveListener(OnSliderChanged);
         pointCount.onValueChanged.RemoveListener(OnSliderChanged);
+        thinSlicesToggle.onValueChanged.RemoveListener(OnToggleChanged);
     }
 
     private void OnDropdownValueChanged(int collapseEnum)
@@ -77,7 +80,12 @@ public class CreatePointData : MonoBehaviour
 
     private void OnMinSliderChanged(float _)
     {
-        const float minGap = 0.05f;
+        float minGap = 0.05f;
+        if (!thinSlicesToggle.isOn)
+        {
+            minGap = 0.15f;
+        }
+
         float minValuePercent = fourthDimMin.value;
         float maxValuePercent = 1 - fourthDimMax.value;
 
@@ -92,7 +100,12 @@ public class CreatePointData : MonoBehaviour
 
     private void OnMaxSliderChanged(float _)
     {
-        const float minGap = 0.05f;
+        float minGap = 0.05f;
+        if (!thinSlicesToggle.isOn)
+        {
+            minGap = 0.15f;
+        }
+
         float minValuePercent = fourthDimMin.value;
         float maxValuePercent = 1 - fourthDimMax.value;
 
