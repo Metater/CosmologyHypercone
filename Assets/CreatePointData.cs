@@ -9,8 +9,7 @@ public class CreatePointData : MonoBehaviour
 {
     public Slider zw, yw, yz, xw, xz, xy;
     public Slider fourthDimMin, fourthDimMax;
-    public Toggle boundaryEquation;
-    public Toggle colorBy3DPoint;
+    public TMP_Dropdown equation, projection, coloring;
 
     public int numPoints = 1000;
     public TMP_Dropdown dropdown;
@@ -31,31 +30,33 @@ public class CreatePointData : MonoBehaviour
     private void OnEnable()
     {
         dropdown.onValueChanged.AddListener(OnDropdownValueChanged);
+        equation.onValueChanged.AddListener(OnDropdownValueChanged);
+        projection.onValueChanged.AddListener(OnDropdownValueChanged);
+        coloring.onValueChanged.AddListener(OnDropdownValueChanged);
         zw.onValueChanged.AddListener(OnSliderChanged);
         yw.onValueChanged.AddListener(OnSliderChanged);
         yz.onValueChanged.AddListener(OnSliderChanged);
         xw.onValueChanged.AddListener(OnSliderChanged);
         xz.onValueChanged.AddListener(OnSliderChanged);
         xy.onValueChanged.AddListener(OnSliderChanged);
-        fourthDimMin.onValueChanged.AddListener(OnSliderChanged);
-        fourthDimMax.onValueChanged.AddListener(OnSliderChanged);
-        boundaryEquation.onValueChanged.AddListener(OnToggleChanged);
-        colorBy3DPoint.onValueChanged.AddListener(OnToggleChanged);
+        fourthDimMin.onValueChanged.AddListener(OnMinSliderChanged);
+        fourthDimMax.onValueChanged.AddListener(OnMaxSliderChanged);
     }
 
     private void OnDisable()
     {
         dropdown.onValueChanged.RemoveListener(OnDropdownValueChanged);
+        equation.onValueChanged.RemoveListener(OnDropdownValueChanged);
+        projection.onValueChanged.RemoveListener(OnDropdownValueChanged);
+        coloring.onValueChanged.RemoveListener(OnDropdownValueChanged);
         zw.onValueChanged.RemoveListener(OnSliderChanged);
         yw.onValueChanged.RemoveListener(OnSliderChanged);
         yz.onValueChanged.RemoveListener(OnSliderChanged);
         xw.onValueChanged.RemoveListener(OnSliderChanged);
         xz.onValueChanged.RemoveListener(OnSliderChanged);
         xy.onValueChanged.RemoveListener(OnSliderChanged);
-        fourthDimMin.onValueChanged.RemoveListener(OnSliderChanged);
-        fourthDimMax.onValueChanged.RemoveListener(OnSliderChanged);
-        boundaryEquation.onValueChanged.RemoveListener(OnToggleChanged);
-        colorBy3DPoint.onValueChanged.RemoveListener(OnToggleChanged);
+        fourthDimMin.onValueChanged.RemoveListener(OnMinSliderChanged);
+        fourthDimMax.onValueChanged.RemoveListener(OnMaxSliderChanged);
     }
 
     private void OnDropdownValueChanged(int collapseEnum)
@@ -65,6 +66,36 @@ public class CreatePointData : MonoBehaviour
 
     private void OnSliderChanged(float _)
     {
+        Generate();
+    }
+
+    private void OnMinSliderChanged(float _)
+    {
+        const float minGap = 0.01f;
+        float minValuePercent = fourthDimMin.value;
+        float maxValuePercent = 1 - fourthDimMax.value;
+
+        if (minValuePercent >= maxValuePercent - minGap)
+        {
+            maxValuePercent = Mathf.Clamp01(minValuePercent + minGap);
+            fourthDimMax.value = 1 - maxValuePercent;
+        }
+
+        Generate();
+    }
+
+    private void OnMaxSliderChanged(float _)
+    {
+        const float minGap = 0.01f;
+        float minValuePercent = fourthDimMin.value;
+        float maxValuePercent = 1 - fourthDimMax.value;
+
+        if (maxValuePercent <= minValuePercent + minGap)
+        {
+            minValuePercent = Mathf.Clamp01(maxValuePercent - minGap);
+            fourthDimMin.value = minValuePercent;
+        }
+
         Generate();
     }
 
@@ -108,7 +139,10 @@ public class CreatePointData : MonoBehaviour
 
         //data.Initialize(points.ToList(), colors.ToList());
 
-        Hypercone hypercone = new(numPoints, minValue, maxValue, threshold);
+        // scale the point count based on percentage of the range of the fourth dimension that is visible
+        int pts = (int)(numPoints / (maxValuePercent - minValuePercent));
+
+        Hypercone hypercone = new(pts, minValue, maxValue, threshold);
 
         hypercone.Transform(matrix);
         hypercone.Scale(scale);
@@ -139,7 +173,9 @@ public class CreatePointData : MonoBehaviour
 
         List<Color32> colors = new();
 
-        if (colorBy3DPoint.isOn)
+        bool colorBy3DPoint = coloring.value == 0;
+
+        if (colorBy3DPoint)
         {
             for (var i = 0; i < remaining.Count; i++)
             {

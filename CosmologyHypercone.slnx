@@ -1,5 +1,5 @@
 ﻿<Solution>
   <Project Path="Pcx.csproj" />
-  <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="Pcx.Editor.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
 </Solution>
