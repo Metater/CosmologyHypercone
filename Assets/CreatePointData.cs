@@ -9,10 +9,14 @@ public class CreatePointData : MonoBehaviour
 {
     public Slider zw, yw, yz, xw, xz, xy;
     public Slider fourthDimMin, fourthDimMax;
+    public Slider pointSize, pointCount;
     public TMP_Dropdown equation, projection, coloring;
+    public TMP_Text equationText;
 
-    public int numPoints = 1000;
-    public TMP_Dropdown dropdown;
+    public int minPoints = 500;
+    public int maxPoints = 10000;
+    public float minPointSize = 0.01f;
+    public float maxPointSize = 0.1f;
     public float minValue = -1f;
     public float maxValue = 1f;
     public float threshold = 0.01f;
@@ -29,7 +33,6 @@ public class CreatePointData : MonoBehaviour
 
     private void OnEnable()
     {
-        dropdown.onValueChanged.AddListener(OnDropdownValueChanged);
         equation.onValueChanged.AddListener(OnDropdownValueChanged);
         projection.onValueChanged.AddListener(OnDropdownValueChanged);
         coloring.onValueChanged.AddListener(OnDropdownValueChanged);
@@ -41,11 +44,12 @@ public class CreatePointData : MonoBehaviour
         xy.onValueChanged.AddListener(OnSliderChanged);
         fourthDimMin.onValueChanged.AddListener(OnMinSliderChanged);
         fourthDimMax.onValueChanged.AddListener(OnMaxSliderChanged);
+        pointSize.onValueChanged.AddListener(OnSliderChanged);
+        pointCount.onValueChanged.AddListener(OnSliderChanged);
     }
 
     private void OnDisable()
     {
-        dropdown.onValueChanged.RemoveListener(OnDropdownValueChanged);
         equation.onValueChanged.RemoveListener(OnDropdownValueChanged);
         projection.onValueChanged.RemoveListener(OnDropdownValueChanged);
         coloring.onValueChanged.RemoveListener(OnDropdownValueChanged);
@@ -57,6 +61,8 @@ public class CreatePointData : MonoBehaviour
         xy.onValueChanged.RemoveListener(OnSliderChanged);
         fourthDimMin.onValueChanged.RemoveListener(OnMinSliderChanged);
         fourthDimMax.onValueChanged.RemoveListener(OnMaxSliderChanged);
+        pointSize.onValueChanged.RemoveListener(OnSliderChanged);
+        pointCount.onValueChanged.RemoveListener(OnSliderChanged);
     }
 
     private void OnDropdownValueChanged(int collapseEnum)
@@ -71,7 +77,7 @@ public class CreatePointData : MonoBehaviour
 
     private void OnMinSliderChanged(float _)
     {
-        const float minGap = 0.01f;
+        const float minGap = 0.05f;
         float minValuePercent = fourthDimMin.value;
         float maxValuePercent = 1 - fourthDimMax.value;
 
@@ -86,7 +92,7 @@ public class CreatePointData : MonoBehaviour
 
     private void OnMaxSliderChanged(float _)
     {
-        const float minGap = 0.01f;
+        const float minGap = 0.05f;
         float minValuePercent = fourthDimMin.value;
         float maxValuePercent = 1 - fourthDimMax.value;
 
@@ -111,7 +117,16 @@ public class CreatePointData : MonoBehaviour
 
     private void Generate()
     {
-        int collapseEnum = dropdown.value;
+        if (equation.value == 0)
+        {
+            equationText.text = "w^2 <= x^2 + y^2 + z^2";
+        }
+        else
+        {
+            equationText.text = "w^2 = x^2 + y^2 + z^2";
+        }
+
+        int collapseEnum = projection.value;
         float zwVal = zw.value * 2 * Mathf.PI;
         float ywVal = yw.value * 2 * Mathf.PI;
         float yzVal = yz.value * 2 * Mathf.PI;
@@ -139,10 +154,14 @@ public class CreatePointData : MonoBehaviour
 
         //data.Initialize(points.ToList(), colors.ToList());
 
+        float pointsT = pointCount.value;
+
+        int numPoints = (int)Mathf.Lerp(minPoints, maxPoints, pointsT);
+
         // scale the point count based on percentage of the range of the fourth dimension that is visible
         int pts = (int)(numPoints / (maxValuePercent - minValuePercent));
 
-        Hypercone hypercone = new(pts, minValue, maxValue, threshold);
+        Hypercone hypercone = new(pts, minValue, maxValue, threshold, equation.value == 0);
 
         hypercone.Transform(matrix);
         hypercone.Scale(scale);
@@ -193,6 +212,8 @@ public class CreatePointData : MonoBehaviour
                 colors.Add(GetColor(t));
             }
         }
+
+        rend.pointSize = Mathf.Lerp(minPointSize, maxPointSize, pointSize.value);
 
         data.Initialize(remaining, colors);
 
@@ -276,23 +297,31 @@ public class CreatePointData : MonoBehaviour
             return (remaining, collapsed);
         }
 
-        public Hypercone(int n, float minValue, float maxValue, float threshold)
+        public Hypercone(int n, float minValue, float maxValue, float threshold, bool isHypervolume)
         {
             this.threshold = threshold;
-            for (var i = 0; i < n; i++)
-            {
-                var point = new Vector4(
-                    Random.Range(minValue, maxValue),
-                    Random.Range(minValue, maxValue), Random.Range(minValue, maxValue), Random.Range(minValue, maxValue)
-                );
 
-                if (IsInside(point))
+            if (isHypervolume)
+            {
+                for (var i = 0; i < n; i++)
                 {
-                    points.Add(point);
+                    var point = new Vector4(
+                        Random.Range(minValue, maxValue),
+                        Random.Range(minValue, maxValue), Random.Range(minValue, maxValue), Random.Range(minValue, maxValue)
+                    );
+
+                    if (IsInside(point))
+                    {
+                        points.Add(point);
+                    }
                 }
             }
+            else
+            {
+                points = GeneratePoints(n);
 
-            //points = GeneratePoints(n);
+            }
+
         }
 
         private static List<Vector4> GeneratePoints(int n)
