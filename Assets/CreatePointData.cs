@@ -86,6 +86,11 @@ public class CreatePointData : MonoBehaviour
             minGap = 0.15f;
         }
 
+        if (fourthDimMin.value > 1 - minGap)
+        {
+            fourthDimMin.SetValueWithoutNotify(1 - minGap);
+        }
+
         float minValuePercent = fourthDimMin.value;
         float maxValuePercent = 1 - fourthDimMax.value;
 
@@ -104,6 +109,11 @@ public class CreatePointData : MonoBehaviour
         if (!thinSlicesToggle.isOn)
         {
             minGap = 0.15f;
+        }
+
+        if (fourthDimMax.value > 1 - minGap)
+        {
+            fourthDimMax.SetValueWithoutNotify(1 - minGap);
         }
 
         float minValuePercent = fourthDimMin.value;
