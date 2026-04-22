@@ -7,6 +7,33 @@ using UnityEngine.UI;
 
 public class CreatePointData : MonoBehaviour
 {
+    [System.Serializable]
+    private class PresetData
+    {
+        public string name;
+        public float zw;
+        public float yw;
+        public float yz;
+        public float xw;
+        public float xz;
+        public float xy;
+        public float fourthDimMin;
+        public float fourthDimMax;
+        public float pointSize;
+        public float pointCount;
+        public int equation;
+        public int projection;
+        public int coloring;
+        public bool thinSlicesToggle;
+        public CameraOrbit.CameraOrbitState cameraState;
+    }
+
+    [System.Serializable]
+    private class PresetNameList
+    {
+        public List<string> names = new();
+    }
+
     public Slider zw, yw, yz, xw, xz, xy;
     public Slider fourthDimMin, fourthDimMax;
     public Slider pointSize, pointCount;
@@ -28,6 +55,12 @@ public class CreatePointData : MonoBehaviour
     private PointCloudRenderer rend;
 
     private bool isDemoMenuOpen = false;
+    private Vector2 presetScrollPosition = Vector2.zero;
+    private string newPresetName = string.Empty;
+    private List<string> presetNames = new();
+
+    private const string PresetListKey = "CreatePointData.PresetNames";
+    private const string PresetDataKeyPrefix = "CreatePointData.Preset.";
 
     private void Update()
     {
@@ -41,6 +74,7 @@ public class CreatePointData : MonoBehaviour
     {
         data = GetComponent<PointCloudData>();
         rend = GetComponent<PointCloudRenderer>();
+        LoadPresetNames();
     }
 
     private void OnGUI()
@@ -50,7 +84,205 @@ public class CreatePointData : MonoBehaviour
             return;
         }
 
+        const float width = 420f;
+        const float height = 460f;
+        Rect area = new Rect(20f, 20f, width, height);
 
+        GUILayout.BeginArea(area, GUI.skin.box);
+        GUILayout.Label("Presets");
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Name", GUILayout.Width(45f));
+        newPresetName = GUILayout.TextField(newPresetName, GUILayout.ExpandWidth(true));
+        if (GUILayout.Button("Save", GUILayout.Width(70f)))
+        {
+            SaveCurrentPreset();
+        }
+        GUILayout.EndHorizontal();
+
+        if (presetNames.Count == 0)
+        {
+            GUILayout.Label("No presets saved.");
+        }
+        else
+        {
+            presetScrollPosition = GUILayout.BeginScrollView(presetScrollPosition, GUILayout.Height(370f));
+
+            for (int i = 0; i < presetNames.Count; i++)
+            {
+                string presetName = presetNames[i];
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(presetName, GUILayout.ExpandWidth(true));
+
+                if (GUILayout.Button("Load", GUILayout.Width(60f)))
+                {
+                    LoadPreset(presetName);
+                }
+
+                if (GUILayout.Button("Delete", GUILayout.Width(60f)))
+                {
+                    DeletePreset(presetName);
+                    i--;
+                }
+
+                GUILayout.EndHorizontal();
+            }
+
+            GUILayout.EndScrollView();
+        }
+
+        GUILayout.EndArea();
+
+
+    }
+
+    private void SaveCurrentPreset()
+    {
+        string presetName = (newPresetName ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(presetName))
+        {
+            return;
+        }
+
+        PresetData preset = CaptureCurrentPreset(presetName);
+        string key = GetPresetDataKey(presetName);
+        string json = JsonUtility.ToJson(preset);
+
+        PlayerPrefs.SetString(key, json);
+
+        if (!presetNames.Contains(presetName))
+        {
+            presetNames.Add(presetName);
+            presetNames.Sort(System.StringComparer.OrdinalIgnoreCase);
+            SavePresetNameList();
+        }
+
+        PlayerPrefs.Save();
+    }
+
+    private void LoadPreset(string presetName)
+    {
+        string key = GetPresetDataKey(presetName);
+        if (!PlayerPrefs.HasKey(key))
+        {
+            return;
+        }
+
+        string json = PlayerPrefs.GetString(key);
+        PresetData preset = JsonUtility.FromJson<PresetData>(json);
+        if (preset == null)
+        {
+            return;
+        }
+
+        ApplyPreset(preset);
+    }
+
+    private void DeletePreset(string presetName)
+    {
+        string key = GetPresetDataKey(presetName);
+        if (PlayerPrefs.HasKey(key))
+        {
+            PlayerPrefs.DeleteKey(key);
+        }
+
+        if (presetNames.Remove(presetName))
+        {
+            SavePresetNameList();
+        }
+
+        PlayerPrefs.Save();
+    }
+
+    private PresetData CaptureCurrentPreset(string presetName)
+    {
+        return new PresetData
+        {
+            name = presetName,
+            zw = zw.value,
+            yw = yw.value,
+            yz = yz.value,
+            xw = xw.value,
+            xz = xz.value,
+            xy = xy.value,
+            fourthDimMin = fourthDimMin.value,
+            fourthDimMax = fourthDimMax.value,
+            pointSize = pointSize.value,
+            pointCount = pointCount.value,
+            equation = equation.value,
+            projection = projection.value,
+            coloring = coloring.value,
+            thinSlicesToggle = thinSlicesToggle.isOn,
+            cameraState = cameraOrbit != null ? cameraOrbit.CaptureState() : null
+        };
+    }
+
+    private void ApplyPreset(PresetData preset)
+    {
+        zw.SetValueWithoutNotify(preset.zw);
+        yw.SetValueWithoutNotify(preset.yw);
+        yz.SetValueWithoutNotify(preset.yz);
+        xw.SetValueWithoutNotify(preset.xw);
+        xz.SetValueWithoutNotify(preset.xz);
+        xy.SetValueWithoutNotify(preset.xy);
+        fourthDimMin.SetValueWithoutNotify(preset.fourthDimMin);
+        fourthDimMax.SetValueWithoutNotify(preset.fourthDimMax);
+        pointSize.SetValueWithoutNotify(preset.pointSize);
+        pointCount.SetValueWithoutNotify(preset.pointCount);
+
+        equation.SetValueWithoutNotify(preset.equation);
+        projection.SetValueWithoutNotify(preset.projection);
+        coloring.SetValueWithoutNotify(preset.coloring);
+
+        thinSlicesToggle.SetIsOnWithoutNotify(preset.thinSlicesToggle);
+
+        if (cameraOrbit != null && preset.cameraState != null)
+        {
+            cameraOrbit.ApplyState(preset.cameraState);
+        }
+
+        Generate();
+    }
+
+    private void LoadPresetNames()
+    {
+        presetNames.Clear();
+
+        if (!PlayerPrefs.HasKey(PresetListKey))
+        {
+            return;
+        }
+
+        string json = PlayerPrefs.GetString(PresetListKey);
+        PresetNameList list = JsonUtility.FromJson<PresetNameList>(json);
+
+        if (list?.names == null)
+        {
+            return;
+        }
+
+        foreach (string name in list.names)
+        {
+            if (!string.IsNullOrWhiteSpace(name) && !presetNames.Contains(name))
+            {
+                presetNames.Add(name);
+            }
+        }
+
+        presetNames.Sort(System.StringComparer.OrdinalIgnoreCase);
+    }
+
+    private void SavePresetNameList()
+    {
+        PresetNameList list = new PresetNameList { names = new List<string>(presetNames) };
+        string json = JsonUtility.ToJson(list);
+        PlayerPrefs.SetString(PresetListKey, json);
+    }
+
+    private static string GetPresetDataKey(string presetName)
+    {
+        return $"{PresetDataKeyPrefix}{presetName}";
     }
 
     private void OnEnable()
@@ -163,7 +395,7 @@ public class CreatePointData : MonoBehaviour
     {
         if (equation.value == 0)
         {
-            equationText.text = "w^2 <= x^2 + y^2 + z^2";
+            equationText.text = "w^2 >= x^2 + y^2 + z^2";
         }
         else
         {
@@ -382,7 +614,7 @@ public class CreatePointData : MonoBehaviour
             return points;
         }
 
-        private bool IsInside(Vector4 point)
+        private bool IsOutside(Vector4 point)
         {
             float wS = point.w * point.w;
             float xS = point.x * point.x;
@@ -390,6 +622,21 @@ public class CreatePointData : MonoBehaviour
             float zS = point.z * point.z;
 
             return wS <= xS + yS + zS;
+
+            // check if the point is within the threshold distance from the surface of the hypercone
+            //float val = xS + yS + zS;
+            //float diff = Mathf.Abs(wS - val);
+            //return diff < threshold;
+        }
+
+        private bool IsInside(Vector4 point)
+        {
+            float wS = point.w * point.w;
+            float xS = point.x * point.x;
+            float yS = point.y * point.y;
+            float zS = point.z * point.z;
+
+            return wS >= xS + yS + zS;
 
             // check if the point is within the threshold distance from the surface of the hypercone
             //float val = xS + yS + zS;

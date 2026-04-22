@@ -2,6 +2,32 @@ using UnityEngine;
 
 public class CameraOrbit : MonoBehaviour
 {
+    [System.Serializable]
+    public class CameraOrbitState
+    {
+        public Vector3 orbitCenter;
+        public float distance;
+        public float minDistance;
+        public float maxDistance;
+        public float rotationSpeed;
+        public float minPitch;
+        public float maxPitch;
+        public bool useMouseDrag;
+        public int dragMouseButton;
+        public float zoomSpeed;
+        public bool invertYAxis;
+        public float rotationDamping;
+        public bool useSmoothing;
+        public float persistentAngularSpeedThreshold;
+        public float angularDrag;
+        public float currentYaw;
+        public float currentPitch;
+        public float targetYaw;
+        public float targetPitch;
+        public Vector2 angularVelocity;
+        public Vector3 cameraPosition;
+    }
+
     [Header("Orbit Settings")]
     [SerializeField] private Vector3 orbitCenter = Vector3.zero;
     [SerializeField] private float distance = 10f;
@@ -196,5 +222,64 @@ public class CameraOrbit : MonoBehaviour
             currentYaw = targetYaw;
             currentPitch = targetPitch;
         }
+    }
+
+    public CameraOrbitState CaptureState()
+    {
+        return new CameraOrbitState
+        {
+            orbitCenter = orbitCenter,
+            distance = distance,
+            minDistance = minDistance,
+            maxDistance = maxDistance,
+            rotationSpeed = rotationSpeed,
+            minPitch = minPitch,
+            maxPitch = maxPitch,
+            useMouseDrag = useMouseDrag,
+            dragMouseButton = dragMouseButton,
+            zoomSpeed = zoomSpeed,
+            invertYAxis = invertYAxis,
+            rotationDamping = rotationDamping,
+            useSmoothing = useSmoothing,
+            persistentAngularSpeedThreshold = persistentAngularSpeedThreshold,
+            angularDrag = angularDrag,
+            currentYaw = currentYaw,
+            currentPitch = currentPitch,
+            targetYaw = targetYaw,
+            targetPitch = targetPitch,
+            angularVelocity = angularVelocity,
+            cameraPosition = transform.position
+        };
+    }
+
+    public void ApplyState(CameraOrbitState state)
+    {
+        if (state == null)
+        {
+            return;
+        }
+
+        orbitCenter = state.orbitCenter;
+        minDistance = state.minDistance;
+        maxDistance = state.maxDistance;
+        distance = Mathf.Clamp(state.distance, minDistance, maxDistance);
+        rotationSpeed = state.rotationSpeed;
+        minPitch = state.minPitch;
+        maxPitch = state.maxPitch;
+        useMouseDrag = state.useMouseDrag;
+        dragMouseButton = state.dragMouseButton;
+        zoomSpeed = state.zoomSpeed;
+        invertYAxis = state.invertYAxis;
+        rotationDamping = state.rotationDamping;
+        useSmoothing = state.useSmoothing;
+        persistentAngularSpeedThreshold = state.persistentAngularSpeedThreshold;
+        angularDrag = state.angularDrag;
+        currentYaw = state.currentYaw;
+        currentPitch = Mathf.Clamp(state.currentPitch, minPitch, maxPitch);
+        targetYaw = state.targetYaw;
+        targetPitch = Mathf.Clamp(state.targetPitch, minPitch, maxPitch);
+        angularVelocity = state.angularVelocity;
+
+        UpdateCameraPosition();
     }
 }

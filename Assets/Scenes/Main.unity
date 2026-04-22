@@ -3981,7 +3981,7 @@ MonoBehaviour:
   coloring: {fileID: 827313252}
   equationText: {fileID: 2047130064}
   thinSlicesToggle: {fileID: 1944999431}
-  cameraOrbit: {fileID: 0}
+  cameraOrbit: {fileID: 963194229}
   minPoints: 500
   maxPoints: 10000
   minPointSize: 0.01
