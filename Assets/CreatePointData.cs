@@ -62,6 +62,7 @@ public class CreatePointData : MonoBehaviour
     private List<string> presetNames = new();
     private Rect presetWindowRect = new Rect(20f, 20f, 520f, 620f);
     private bool isResizingPresetWindow = false;
+    private GUIStyle presetLabelStyle;
 
     private const int PresetWindowId = 972341;
     private const float PresetWindowMinWidth = 380f;
@@ -93,8 +94,24 @@ public class CreatePointData : MonoBehaviour
             return;
         }
 
+        EnsureGuiStyles();
+
         presetWindowRect = GUI.Window(PresetWindowId, presetWindowRect, DrawPresetWindow, "Presets");
         HandlePresetWindowResize();
+    }
+
+    private void EnsureGuiStyles()
+    {
+        if (presetLabelStyle != null)
+        {
+            return;
+        }
+
+        presetLabelStyle = new GUIStyle(GUI.skin.label);
+        presetLabelStyle.normal.textColor = Color.black;
+        presetLabelStyle.hover.textColor = Color.black;
+        presetLabelStyle.active.textColor = Color.black;
+        presetLabelStyle.focused.textColor = Color.black;
     }
 
     private void DrawPresetWindow(int windowId)
@@ -102,7 +119,7 @@ public class CreatePointData : MonoBehaviour
         GUILayout.BeginVertical();
 
         GUILayout.BeginHorizontal();
-        GUILayout.Label("Name", GUILayout.Width(45f));
+        GUILayout.Label("Name", presetLabelStyle, GUILayout.Width(45f));
         newPresetName = GUILayout.TextField(newPresetName, GUILayout.ExpandWidth(true));
         if (GUILayout.Button("Save", GUILayout.Width(70f)))
         {
@@ -110,13 +127,13 @@ public class CreatePointData : MonoBehaviour
         }
         GUILayout.EndHorizontal();
 
-        GUILayout.Label("Notes");
+        GUILayout.Label("Notes", presetLabelStyle);
         float notesHeight = Mathf.Max(36f, GUI.skin.textArea.lineHeight * 2f + 10f);
         presetNotes = GUILayout.TextArea(presetNotes, GUILayout.Height(notesHeight), GUILayout.ExpandWidth(true));
 
         if (presetNames.Count == 0)
         {
-            GUILayout.Label("No presets saved.");
+            GUILayout.Label("No presets saved.", presetLabelStyle);
         }
         else
         {
@@ -128,7 +145,7 @@ public class CreatePointData : MonoBehaviour
                 string presetName = presetNames[i];
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(presetName, GUILayout.ExpandWidth(true));
+                GUILayout.Label(presetName, presetLabelStyle, GUILayout.ExpandWidth(true));
 
                 if (GUILayout.Button("Load", GUILayout.Width(60f)))
                 {
@@ -374,6 +391,8 @@ public class CreatePointData : MonoBehaviour
         pointSize.onValueChanged.AddListener(OnSliderChanged);
         pointCount.onValueChanged.AddListener(OnSliderChanged);
         thinSlicesToggle.onValueChanged.AddListener(OnToggleChanged);
+
+        Application.targetFrameRate = 60;
     }
 
     private void OnDisable()
@@ -485,6 +504,9 @@ public class CreatePointData : MonoBehaviour
                 break;
             case 5:
                 equationText.text = "Hypersphere (boundary shell)";
+                break;
+            case 6:
+                equationText.text = "w^2 <= x^2 + y^2 + z^2";
                 break;
             default:
                 equationText.text = "w^2 = x^2 + y^2 + z^2";
@@ -696,6 +718,20 @@ public class CreatePointData : MonoBehaviour
                     break;
                 case 5:
                     points = GenerateHypersphereBoundary(n, minValue, maxValue);
+                    break;
+                case 6:
+                    for (var i = 0; i < n; i++)
+                    {
+                        var point = new Vector4(
+                            Random.Range(minValue, maxValue),
+                            Random.Range(minValue, maxValue), Random.Range(minValue, maxValue), Random.Range(minValue, maxValue)
+                        );
+
+                        if (IsOutside(point))
+                        {
+                            points.Add(point);
+                        }
+                    }
                     break;
                 default:
                     points = GeneratePoints(n);
