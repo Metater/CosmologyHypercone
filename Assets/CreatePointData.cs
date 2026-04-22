@@ -407,6 +407,12 @@ public class CreatePointData : MonoBehaviour
             case 3:
                 equationText.text = "Tesseract (boundary shell)";
                 break;
+            case 4:
+                equationText.text = "Hypersphere (hypervolume)";
+                break;
+            case 5:
+                equationText.text = "Hypersphere (boundary shell)";
+                break;
             default:
                 equationText.text = "w^2 = x^2 + y^2 + z^2";
                 break;
@@ -612,6 +618,12 @@ public class CreatePointData : MonoBehaviour
                 case 3:
                     points = GenerateTesseractBoundary(n, minValue, maxValue);
                     break;
+                case 4:
+                    points = GenerateHypersphereHypervolume(n, minValue, maxValue);
+                    break;
+                case 5:
+                    points = GenerateHypersphereBoundary(n, minValue, maxValue);
+                    break;
                 default:
                     points = GeneratePoints(n);
                     break;
@@ -633,6 +645,73 @@ public class CreatePointData : MonoBehaviour
             }
 
             return points;
+        }
+
+        private static List<Vector4> GenerateHypersphereHypervolume(int n, float minValue, float maxValue)
+        {
+            var points = new List<Vector4>();
+            float center = (minValue + maxValue) * 0.5f;
+            float radius = (maxValue - minValue) * 0.5f;
+            float radiusSq = radius * radius;
+
+            while (points.Count < n)
+            {
+                float x = Random.Range(-radius, radius);
+                float y = Random.Range(-radius, radius);
+                float z = Random.Range(-radius, radius);
+                float w = Random.Range(-radius, radius);
+
+                float distSq = x * x + y * y + z * z + w * w;
+                if (distSq <= radiusSq)
+                {
+                    points.Add(new Vector4(x + center, y + center, z + center, w + center));
+                }
+            }
+
+            return points;
+        }
+
+        private static List<Vector4> GenerateHypersphereBoundary(int n, float minValue, float maxValue)
+        {
+            var points = new List<Vector4>();
+            float center = (minValue + maxValue) * 0.5f;
+            float radius = (maxValue - minValue) * 0.5f;
+
+            for (var i = 0; i < n; i++)
+            {
+                Vector4 dir = new Vector4(
+                    SampleStandardNormal(),
+                    SampleStandardNormal(),
+                    SampleStandardNormal(),
+                    SampleStandardNormal()
+                );
+
+                float mag = dir.magnitude;
+                if (mag <= Mathf.Epsilon)
+                {
+                    dir = new Vector4(1f, 0f, 0f, 0f);
+                }
+                else
+                {
+                    dir /= mag;
+                }
+
+                points.Add(new Vector4(
+                    center + dir.x * radius,
+                    center + dir.y * radius,
+                    center + dir.z * radius,
+                    center + dir.w * radius
+                ));
+            }
+
+            return points;
+        }
+
+        private static float SampleStandardNormal()
+        {
+            float u1 = Mathf.Max(Random.value, 1e-7f);
+            float u2 = Random.value;
+            return Mathf.Sqrt(-2f * Mathf.Log(u1)) * Mathf.Cos(2f * Mathf.PI * u2);
         }
 
         private static List<Vector4> GenerateTesseractBoundary(int n, float minValue, float maxValue)
