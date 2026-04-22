@@ -1,4 +1,4 @@
-using Pcx;
+ï»¿using Pcx;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -11,6 +11,7 @@ public class CreatePointData : MonoBehaviour
     private class PresetData
     {
         public string name;
+        public string notes;
         public float zw;
         public float yw;
         public float yz;
@@ -57,7 +58,15 @@ public class CreatePointData : MonoBehaviour
     private bool isDemoMenuOpen = false;
     private Vector2 presetScrollPosition = Vector2.zero;
     private string newPresetName = string.Empty;
+    private string presetNotes = string.Empty;
     private List<string> presetNames = new();
+    private Rect presetWindowRect = new Rect(20f, 20f, 520f, 620f);
+    private bool isResizingPresetWindow = false;
+
+    private const int PresetWindowId = 972341;
+    private const float PresetWindowMinWidth = 380f;
+    private const float PresetWindowMinHeight = 300f;
+    private const float PresetWindowResizeHandleSize = 18f;
 
     private const string PresetListKey = "CreatePointData.PresetNames";
     private const string PresetDataKeyPrefix = "CreatePointData.Preset.";
@@ -84,12 +93,13 @@ public class CreatePointData : MonoBehaviour
             return;
         }
 
-        const float width = 420f;
-        const float height = 460f;
-        Rect area = new Rect(20f, 20f, width, height);
+        presetWindowRect = GUI.Window(PresetWindowId, presetWindowRect, DrawPresetWindow, "Presets");
+        HandlePresetWindowResize();
+    }
 
-        GUILayout.BeginArea(area, GUI.skin.box);
-        GUILayout.Label("Presets");
+    private void DrawPresetWindow(int windowId)
+    {
+        GUILayout.BeginVertical();
 
         GUILayout.BeginHorizontal();
         GUILayout.Label("Name", GUILayout.Width(45f));
@@ -100,13 +110,18 @@ public class CreatePointData : MonoBehaviour
         }
         GUILayout.EndHorizontal();
 
+        GUILayout.Label("Notes");
+        float notesHeight = Mathf.Max(36f, GUI.skin.textArea.lineHeight * 2f + 10f);
+        presetNotes = GUILayout.TextArea(presetNotes, GUILayout.Height(notesHeight), GUILayout.ExpandWidth(true));
+
         if (presetNames.Count == 0)
         {
             GUILayout.Label("No presets saved.");
         }
         else
         {
-            presetScrollPosition = GUILayout.BeginScrollView(presetScrollPosition, GUILayout.Height(370f));
+            float listHeight = Mathf.Max(90f, presetWindowRect.height - 130f);
+            presetScrollPosition = GUILayout.BeginScrollView(presetScrollPosition, GUILayout.Height(listHeight));
 
             for (int i = 0; i < presetNames.Count; i++)
             {
@@ -132,9 +147,63 @@ public class CreatePointData : MonoBehaviour
             GUILayout.EndScrollView();
         }
 
-        GUILayout.EndArea();
+        GUILayout.EndVertical();
 
+        GUI.Box(
+            new Rect(
+                presetWindowRect.width - PresetWindowResizeHandleSize,
+                presetWindowRect.height - PresetWindowResizeHandleSize,
+                PresetWindowResizeHandleSize,
+                PresetWindowResizeHandleSize
+            ),
+            "â—¢"
+        );
 
+        GUI.DragWindow(new Rect(0f, 0f, presetWindowRect.width - 24f, 24f));
+    }
+
+    private void HandlePresetWindowResize()
+    {
+        Event currentEvent = Event.current;
+        if (currentEvent == null)
+        {
+            return;
+        }
+
+        Rect resizeHandleRect = new Rect(
+            presetWindowRect.xMax - PresetWindowResizeHandleSize,
+            presetWindowRect.yMax - PresetWindowResizeHandleSize,
+            PresetWindowResizeHandleSize,
+            PresetWindowResizeHandleSize
+        );
+
+        if (currentEvent.type == EventType.MouseDown && currentEvent.button == 0 && resizeHandleRect.Contains(currentEvent.mousePosition))
+        {
+            isResizingPresetWindow = true;
+            currentEvent.Use();
+            return;
+        }
+
+        if (!isResizingPresetWindow)
+        {
+            return;
+        }
+
+        if (currentEvent.type == EventType.MouseDrag)
+        {
+            float newWidth = Mathf.Max(PresetWindowMinWidth, currentEvent.mousePosition.x - presetWindowRect.x);
+            float newHeight = Mathf.Max(PresetWindowMinHeight, currentEvent.mousePosition.y - presetWindowRect.y);
+            presetWindowRect.width = newWidth;
+            presetWindowRect.height = newHeight;
+            currentEvent.Use();
+            return;
+        }
+
+        if (currentEvent.type == EventType.MouseUp)
+        {
+            isResizingPresetWindow = false;
+            currentEvent.Use();
+        }
     }
 
     private void SaveCurrentPreset()
@@ -200,6 +269,7 @@ public class CreatePointData : MonoBehaviour
         return new PresetData
         {
             name = presetName,
+            notes = presetNotes,
             zw = zw.value,
             yw = yw.value,
             yz = yz.value,
@@ -220,6 +290,9 @@ public class CreatePointData : MonoBehaviour
 
     private void ApplyPreset(PresetData preset)
     {
+        newPresetName = preset.name ?? string.Empty;
+        presetNotes = preset.notes ?? string.Empty;
+
         zw.SetValueWithoutNotify(preset.zw);
         yw.SetValueWithoutNotify(preset.yw);
         yz.SetValueWithoutNotify(preset.yz);
@@ -844,7 +917,7 @@ public class CreatePointData : MonoBehaviour
         Rzw.m22 = c34; Rzw.m23 = -s34;
         Rzw.m32 = s34; Rzw.m33 = c34;
 
-        // M = Rzw · Ryw · Ryz · Rxw · Rxz · Rxy
+        // M = Rzw Â· Ryw Â· Ryz Â· Rxw Â· Rxz Â· Rxy
         Matrix4x4 matrix =
             Rzw * Ryw * Ryz * Rxw * Rxz * Rxy;
 
