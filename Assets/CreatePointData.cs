@@ -13,6 +13,7 @@ public class CreatePointData : MonoBehaviour
     public TMP_Dropdown equation, projection, coloring;
     public TMP_Text equationText;
     public Toggle thinSlicesToggle;
+    public CameraOrbit cameraOrbit;
 
     public int minPoints = 500;
     public int maxPoints = 10000;
@@ -26,10 +27,30 @@ public class CreatePointData : MonoBehaviour
     private PointCloudData data;
     private PointCloudRenderer rend;
 
+    private bool isDemoMenuOpen = false;
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            isDemoMenuOpen = !isDemoMenuOpen;
+        }
+    }
+
     private void Awake()
     {
         data = GetComponent<PointCloudData>();
         rend = GetComponent<PointCloudRenderer>();
+    }
+
+    private void OnGUI()
+    {
+        if (!isDemoMenuOpen)
+        {
+            return;
+        }
+
+
     }
 
     private void OnEnable()

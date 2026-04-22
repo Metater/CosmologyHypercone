@@ -23,10 +23,15 @@ public class CameraOrbit : MonoBehaviour
     [SerializeField] private float rotationDamping = 0.1f;
     [SerializeField] private bool useSmoothing = true;
 
+    [Header("Inertia")]
+    [SerializeField] private float persistentAngularSpeedThreshold = 80f;
+    [SerializeField] private float angularDrag = 90f;
+
     private float currentYaw = 0f;
     private float currentPitch = 20f;
     private float targetYaw = 0f;
     private float targetPitch = 20f;
+    private Vector2 angularVelocity = Vector2.zero;
 
     void Start()
     {
@@ -82,9 +87,21 @@ public class CameraOrbit : MonoBehaviour
             float deltaX = Input.GetAxis("Mouse X");
             float deltaY = Input.GetAxis("Mouse Y");
 
-            targetYaw += deltaX * rotationSpeed * Time.deltaTime;
-            targetPitch += (invertYAxis ? deltaY : -deltaY) * rotationSpeed * Time.deltaTime;
+            float yawDelta = deltaX * rotationSpeed * Time.deltaTime;
+            float pitchDelta = (invertYAxis ? deltaY : -deltaY) * rotationSpeed * Time.deltaTime;
+
+            targetYaw += yawDelta;
+            targetPitch += pitchDelta;
             targetPitch = Mathf.Clamp(targetPitch, minPitch, maxPitch);
+
+            if (Time.deltaTime > 0f)
+            {
+                angularVelocity = new Vector2(yawDelta / Time.deltaTime, pitchDelta / Time.deltaTime);
+            }
+        }
+        else
+        {
+            ApplyInertia();
         }
 
         // Handle zoom
@@ -92,6 +109,31 @@ public class CameraOrbit : MonoBehaviour
         if (Mathf.Abs(scroll) > 0.01f)
         {
             distance = Mathf.Clamp(distance - scroll * zoomSpeed, minDistance, maxDistance);
+        }
+    }
+
+    private void ApplyInertia()
+    {
+        if (angularVelocity.sqrMagnitude <= 0f)
+        {
+            return;
+        }
+
+        float speed = angularVelocity.magnitude;
+        if (speed < persistentAngularSpeedThreshold)
+        {
+            speed = Mathf.MoveTowards(speed, 0f, angularDrag * Time.deltaTime);
+            angularVelocity = speed > 0f ? angularVelocity.normalized * speed : Vector2.zero;
+        }
+
+        targetYaw += angularVelocity.x * Time.deltaTime;
+        targetPitch += angularVelocity.y * Time.deltaTime;
+
+        float unclampedPitch = targetPitch;
+        targetPitch = Mathf.Clamp(targetPitch, minPitch, maxPitch);
+        if (!Mathf.Approximately(unclampedPitch, targetPitch))
+        {
+            angularVelocity.y = 0f;
         }
     }
 
