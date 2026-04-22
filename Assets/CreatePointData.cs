@@ -393,13 +393,23 @@ public class CreatePointData : MonoBehaviour
 
     private void Generate()
     {
-        if (equation.value == 0)
+        switch (equation.value)
         {
-            equationText.text = "w^2 >= x^2 + y^2 + z^2";
-        }
-        else
-        {
-            equationText.text = "w^2 = x^2 + y^2 + z^2";
+            case 0:
+                equationText.text = "w^2 >= x^2 + y^2 + z^2";
+                break;
+            case 1:
+                equationText.text = "w^2 = x^2 + y^2 + z^2";
+                break;
+            case 2:
+                equationText.text = "Tesseract (hypervolume)";
+                break;
+            case 3:
+                equationText.text = "Tesseract (boundary shell)";
+                break;
+            default:
+                equationText.text = "w^2 = x^2 + y^2 + z^2";
+                break;
         }
 
         int collapseEnum = projection.value;
@@ -437,7 +447,7 @@ public class CreatePointData : MonoBehaviour
         // scale the point count based on percentage of the range of the fourth dimension that is visible
         int pts = (int)(numPoints / (maxValuePercent - minValuePercent));
 
-        Hypercone hypercone = new(pts, minValue, maxValue, threshold, equation.value == 0);
+        Hypercone hypercone = new(pts, minValue, maxValue, threshold, equation.value);
 
         hypercone.Transform(matrix);
         hypercone.Scale(scale);
@@ -573,31 +583,91 @@ public class CreatePointData : MonoBehaviour
             return (remaining, collapsed);
         }
 
-        public Hypercone(int n, float minValue, float maxValue, float threshold, bool isHypervolume)
+        public Hypercone(int n, float minValue, float maxValue, float threshold, int equationType)
         {
             this.threshold = threshold;
 
-            if (isHypervolume)
+            switch (equationType)
             {
-                for (var i = 0; i < n; i++)
-                {
-                    var point = new Vector4(
-                        Random.Range(minValue, maxValue),
-                        Random.Range(minValue, maxValue), Random.Range(minValue, maxValue), Random.Range(minValue, maxValue)
-                    );
-
-                    if (IsInside(point))
+                case 0:
+                    for (var i = 0; i < n; i++)
                     {
-                        points.Add(point);
+                        var point = new Vector4(
+                            Random.Range(minValue, maxValue),
+                            Random.Range(minValue, maxValue), Random.Range(minValue, maxValue), Random.Range(minValue, maxValue)
+                        );
+
+                        if (IsInside(point))
+                        {
+                            points.Add(point);
+                        }
                     }
-                }
+                    break;
+                case 1:
+                    points = GeneratePoints(n);
+                    break;
+                case 2:
+                    points = GenerateTesseractHypervolume(n, minValue, maxValue);
+                    break;
+                case 3:
+                    points = GenerateTesseractBoundary(n, minValue, maxValue);
+                    break;
+                default:
+                    points = GeneratePoints(n);
+                    break;
             }
-            else
+
+        }
+
+        private static List<Vector4> GenerateTesseractHypervolume(int n, float minValue, float maxValue)
+        {
+            var points = new List<Vector4>();
+            for (var i = 0; i < n; i++)
             {
-                points = GeneratePoints(n);
-
+                points.Add(new Vector4(
+                    Random.Range(minValue, maxValue),
+                    Random.Range(minValue, maxValue),
+                    Random.Range(minValue, maxValue),
+                    Random.Range(minValue, maxValue)
+                ));
             }
 
+            return points;
+        }
+
+        private static List<Vector4> GenerateTesseractBoundary(int n, float minValue, float maxValue)
+        {
+            var points = new List<Vector4>();
+            for (var i = 0; i < n; i++)
+            {
+                float x = Random.Range(minValue, maxValue);
+                float y = Random.Range(minValue, maxValue);
+                float z = Random.Range(minValue, maxValue);
+                float w = Random.Range(minValue, maxValue);
+
+                int boundaryAxis = Random.Range(0, 4);
+                float boundaryValue = Random.value < 0.5f ? minValue : maxValue;
+
+                switch (boundaryAxis)
+                {
+                    case 0:
+                        x = boundaryValue;
+                        break;
+                    case 1:
+                        y = boundaryValue;
+                        break;
+                    case 2:
+                        z = boundaryValue;
+                        break;
+                    case 3:
+                        w = boundaryValue;
+                        break;
+                }
+
+                points.Add(new Vector4(x, y, z, w));
+            }
+
+            return points;
         }
 
         private static List<Vector4> GeneratePoints(int n)
